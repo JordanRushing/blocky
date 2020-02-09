@@ -25,6 +25,7 @@ func logger() *logrus.Entry {
 	return logrus.WithField("prefix", "server")
 }
 
+//nolint:funlen
 func NewServer(cfg *config.Config) (*Server, error) {
 	udpHandler := dns.NewServeMux()
 	tcpHandler := dns.NewServeMux()
@@ -45,6 +46,29 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		},
 	}
 
+	if cfg.NoCache {
+		queryResolver := resolver.Chain(
+			resolver.NewClientNamesResolver(cfg.ClientLookup),
+			resolver.NewQueryLoggingResolver(cfg.QueryLog),
+			resolver.NewStatsResolver(),
+			resolver.NewConditionalUpstreamResolver(cfg.Conditional),
+			resolver.NewCustomDNSResolver(cfg.CustomDNS),
+			resolver.NewBlockingResolver(cfg.Blocking),
+			createParallelUpstreamResolver(cfg.Upstream.ExternalResolvers),
+		)
+		server := Server{
+			udpServer:     udpServer,
+			tcpServer:     tcpServer,
+			queryResolver: queryResolver,
+		}
+
+		server.printConfiguration()
+		udpHandler.HandleFunc(".", server.OnRequest)
+		tcpHandler.HandleFunc(".", server.OnRequest)
+
+		return &server, nil
+	}
+
 	queryResolver := resolver.Chain(
 		resolver.NewClientNamesResolver(cfg.ClientLookup),
 		resolver.NewQueryLoggingResolver(cfg.QueryLog),
@@ -55,7 +79,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		resolver.NewCachingResolver(),
 		createParallelUpstreamResolver(cfg.Upstream.ExternalResolvers),
 	)
-
 	server := Server{
 		udpServer:     udpServer,
 		tcpServer:     tcpServer,
@@ -63,7 +86,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	server.printConfiguration()
-
 	udpHandler.HandleFunc(".", server.OnRequest)
 	tcpHandler.HandleFunc(".", server.OnRequest)
 

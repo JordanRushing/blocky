@@ -33,6 +33,7 @@ type Response struct {
 	Reason string
 	rType  ResponseType
 }
+
 type Resolver interface {
 	Resolve(req *Request) (*Response, error)
 	Configuration() []string

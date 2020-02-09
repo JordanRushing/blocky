@@ -98,8 +98,9 @@ type Config struct {
 	Blocking     BlockingConfig            `yaml:"blocking"`
 	ClientLookup ClientLookupConfig        `yaml:"clientLookup"`
 	QueryLog     QueryLogConfig            `yaml:"queryLog"`
+	LogLevel     string                    `yaml:"logLevel"`
+	NoCache      bool                      `yaml:"noCache"`
 	Port         uint16
-	LogLevel     string `yaml:"logLevel"`
 }
 
 type UpstreamConfig struct {
